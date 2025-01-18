@@ -1,14 +1,11 @@
-provider "aws" {
-  region = "us-east-1"
+terraform {
+  # This module is now only being tested with Terraform 0.13.x. However, to make upgrading easier, we are setting
+  # 0.12.26 as the minimum version, as that version added support for required_providers with source URLs, making it
+  # forwards compatible with 0.13.x code.
+  required_version = ">= 0.12.26"
 }
 
-resource "aws_instance" "web" {
-  ami                    = "ami-25488752"
-  instance_type          = "t2.micro"
-  vpc_security_group_ids = ["${aws_security_group.web.id}"]
-  user_data              = "${file("template/user_data.sh")}"
-
-  tags {
-    Name = "hello-world-web"
-  }
+# website::tag::1:: The simplest possible Terraform module: it just outputs "Hello, World!"
+output "hello_world" {
+  value = "Hello, World!"
 }
