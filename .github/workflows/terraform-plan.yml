@@ -1,13 +1,11 @@
 name: Terraform Plan with IAM Change Detection
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main        # Adjust the branch name if you are using a different default branch
     paths:
-      - 'terraform/**/*'  # Trigger the action only on changes within the terraform directory
-    types:
-      - opened
-      - synchronize
-      - reopened
+      - 'terraform/**/*'  # Trigger only on changes within the terraform directory
 
 jobs:
   terraform:
