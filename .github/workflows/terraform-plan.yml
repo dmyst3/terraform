@@ -1,0 +1,58 @@
+name: Terraform Plan with IAM Change Detection
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**/*'  # Trigger the action only on changes within the terraform directory
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: '1.3.7'  # Specify your Terraform version here
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=tfplan -input=false
+
+      - name: Detect IAM Changes
+        id: detect_iam_changes
+        run: |
+          # Check the Terraform plan output for any IAM changes (add your own logic)
+          if terraform show -json tfplan | jq -e '.resource_changes[] | select(.type == "aws_iam_*")' > /dev/null; then
+            echo "IAM changes detected"
+            echo "IAM_changes=true" >> $GITHUB_ENV
+          else
+            echo "No IAM changes detected"
+            echo "IAM_changes=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create Pull Request if IAM Changes Detected
+        if: env.IAM_changes == 'true'
+        run: |
+          PR_TITLE="Automated Pull Request for IAM Changes"
+          PR_BODY="This PR contains changes related to IAM resources. Please review."
+          # Assuming you have a branch like "iam-changes" created or a specific target branch
+          git checkout -b iam-changes
+          git add .
+          git commit -m "$PR_TITLE"
+          git push origin iam-changes
+
+          # Create a PR (replace `base` with the appropriate branch if needed)
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{\"title\":\"$PR_TITLE\",\"head\":\"iam-changes\",\"base\":\"main\",\"body\":\"$PR_BODY\"}" \
+            https://api.github.com/repos/${{ github.repository }}/pulls
